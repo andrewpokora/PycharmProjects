@@ -59,8 +59,8 @@ def prePostCheck(words):
         for ex in results:
             if ex==dex: return results[ex]
     return None
-
-def trashRemove(word_raw, parts_raw):
+        
+def _trashRemove(word_raw, parts_raw):
     word = word_raw
     parts = parts_raw
     for l in trash:
@@ -96,23 +96,21 @@ def compiler(text):
             counter+=1
         else:
             output.write(source[i])
-            print (source[i], end='')
-        #bar.update()
-#        except Exception as f:
-#            print (f, counter, i)
-#            continue
+            print (source[i], end='')     
     output.close()
 
-
+err_present = False
+log = open('log.txt', 'a')        
 trash = (',', '.', '"', "'", '/', "\\", '(', ')', '!', '?', ':', ';', '[', ']', '{', '}')
 pattern = re.compile(r'\s')
 source = open(input('>> Input name of file to format: '), 'r', encoding='utf-8').read()
 f_tab = re.sub(pattern, ' ', source).split(' ')
 f_txt = re.sub(pattern, ' ', open('Tab.txt', 'r', encoding='iso-8859-1').read()).split(' ')
-letters = ('Ä', 'É', 'Ö', 'Ü', 'ß', 'ä', 'é', 'ö', 'ü', 'À', 'Ó',
-           'Â', 'Æ', 'Ç', 'È', 'Ê', 'Ë', 'Î', 'Ï', 'Ô', 'Í', '°',
+letters = ('Ä', 'É', 'Ö', 'Ü', 'ß', 'ä', 'é', 'ö', 'ü', 'À', 'Ó', '`',
+           'Â', 'Æ', 'Ç', 'È', 'Ê', 'Ë', 'Î', 'Ï', 'Ô', 'Í', '°', "'",
            'Ù', 'Û', 'à', 'â', 'æ', 'ç', 'è', 'ê', 'ë', 'Ì', 'Ű',
-           'î', 'ï', 'ô', 'ù', 'û', 'á', 'Á', 'í', 'ì', 'ó', 'ű')
+           'î', 'ï', 'ô', 'ù', 'û', 'á', 'Á', 'í', 'ì', 'ó', 'ű'
+           )
 strange = {'lAcadmie':'l`Académie',
            'verdrrende':'verdrűrende',
            'Kbenhavn':'Kűbenhavn',
@@ -127,7 +125,7 @@ strange = {'lAcadmie':'l`Académie',
 
 print(f_tab[328],f_tab[329],f_tab[327])
 dictionary = {}
-splitter = [b'\xd0\xbf\xd1\x97\xd0\x85', b'\xef\xbf\xbd']
+splitter = [b'\xd0\xbf\xd1\x97\xd0\x85', b'\xef\xbf\xbd', b'\xc2\x92', b'\xc3\xa9']
 print('>> Creating dictionary...')
 t = tqdm(total=len(f_txt))
 for i in range(len(f_txt)):
@@ -141,19 +139,26 @@ t.close()
 print('>> Correcting words...')
 with tqdm(total=len(f_tab)) as bar:
     for i in range(len(f_tab)):
+        spltd_parts = ''
         bar.update()
         parts = f_tab[i].encode('utf-8')
         for split in splitter:
             if split in parts:
                 spltd_parts = parts.replace(split, b'')
-                if len(spltd_parts)<=0:
-                    word = check(spltd_parts, True)
-                else:
-                    word = check(spltd_parts, False)
-                if word != None:
-                    f_tab[i] = word
-                else: print('>->->!!!FAILURE!!!<-<-< with word ', f_tab[i])
+        if len(spltd_parts)<=0:
+            word = check(spltd_parts, True)
+        else:
+            word = check(spltd_parts, False)
+        if word != None:
+            f_tab[i] = word
+        else:
+            err_present = True
+            f_tab[i] = spltd_parts
+            log.write('>->->Failed with word ', f_tab[i])
+log.close()
 bar.close()
+if err_present == True:
+    print('>> Some errors with correcting words occured. See log.txt for details.')
 print('>> Writing to file...')
 compiler(f_tab)
 print('>> Done.')
